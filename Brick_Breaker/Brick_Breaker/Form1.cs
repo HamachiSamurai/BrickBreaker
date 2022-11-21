@@ -21,19 +21,44 @@ namespace Brick_Breaker
 
         // ボールの半径
         int ballRadius;
+
+        Rectangle paddlePos;
+
         public Form1()
         {
             InitializeComponent();
 
             this.ballPos = new Vector(200, 200);
-            this.ballSpeed = new Vector(-2, -4);
+            this.ballSpeed = new Vector(-4, -8);
             this.ballRadius = 10;
+            this.paddlePos = new Rectangle(100, this.Height - 50, 100, 5);
 
             Timer timer = new Timer();
             // 約30fps
             timer.Interval = 33;
             timer.Tick += new EventHandler(Update);
             timer.Start();
+        }
+
+        double DotProduct(Vector a, Vector b)
+        {
+            return a.X * b.X + a.Y * b.Y; // 内積計算
+        }
+
+        bool LineVsCircle(Vector p1, Vector p2, Vector center, float radius)
+        {
+            Vector lineDir = (p2 - p1);                   // パドルの方向ベクトル
+            Vector n = new Vector(lineDir.Y, -lineDir.X); // パドルの法線
+            n.Normalize();
+
+            Vector dir1 = center - p1;
+            Vector dir2 = center - p2;
+
+            double dist = Math.Abs(DotProduct(dir1, n));
+            double a1 = DotProduct(dir1, lineDir);
+            double a2 = DotProduct(dir2, lineDir);
+
+            return (a1 * a2 < 0 && dist < radius) ? true : false;
         }
 
         private void Update(object sender, EventArgs e)
@@ -55,6 +80,14 @@ namespace Brick_Breaker
                 ballSpeed.Y *= -1;
             }
 
+            // パドルのあたり判定
+            if (LineVsCircle(new Vector(this.paddlePos.Left, this.paddlePos.Top),
+                             new Vector(this.paddlePos.Right, this.paddlePos.Top),
+                             ballPos, ballRadius))
+            {
+                ballSpeed.Y *= -1;
+            }
+
             // 再描画
             Invalidate();
         }
@@ -63,11 +96,25 @@ namespace Brick_Breaker
         {
             // ボールを描画するためのブラシ（SolidBrush）
             SolidBrush pinkBrush = new SolidBrush(Color.HotPink);
+            SolidBrush grayBrush = new SolidBrush(Color.DimGray);
 
             float px = (float)this.ballPos.X - ballRadius;
             float py = (float)this.ballPos.Y - ballRadius;
 
             e.Graphics.FillEllipse(pinkBrush, px, py, this.ballRadius * 2, this.ballRadius * 2);
+            e.Graphics.FillRectangle(grayBrush, paddlePos);
+        }
+
+        private void KeyPressed(object sender, KeyPressEventArgs e)
+        {
+            if (e.KeyChar == 'a')
+            {
+                this.paddlePos.X -= 20;
+            }
+            else if (e.KeyChar == 'd')
+            {
+                this.paddlePos.X += 20;
+            }
         }
     }
 }
